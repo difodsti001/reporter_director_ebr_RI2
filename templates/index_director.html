@@ -1,0 +1,1506 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reporte Institucional 2 - Sesiones de aprendizaje V1 y V2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      color-scheme: light;
+      --surface-1:      #fcfcfb;
+      --page-plane:     #f9f9f7;
+      --text-primary:   #0b0b0b;
+      --text-secondary: #52514e;
+      --text-muted:     #898781;
+      --gridline:       #e1e0d9;
+      --baseline:       #c3c2b7;
+      --border:         rgba(11, 11, 11, 0.10);
+
+      --status-good:     #0ca30c;
+      --status-warning:  #fab219;
+      --status-serious:  #ec835a;
+      --status-critical: #d03b3b;
+      --status-good-rgb:     12, 163, 12;
+      --status-warning-rgb:  250, 178, 25;
+      --status-serious-rgb:  236, 131, 90;
+      --status-critical-rgb: 208, 59, 59;
+
+      /* Marca institucional (MINEDU) — cromo de header/footer/CTA, no reemplaza los colores de estado */
+      --brand-red:       #C0392B;
+      --brand-red-dk:    #A93226;
+      --brand-red-light: rgba(192, 57, 43, 0.08);
+
+      --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:where(:not([data-theme="light"])) {
+        color-scheme: dark;
+        --surface-1:      #1a1a19;
+        --page-plane:     #0d0d0d;
+        --text-primary:   #ffffff;
+        --text-secondary: #c3c2b7;
+        --text-muted:     #898781;
+        --gridline:       #2c2c2a;
+        --baseline:       #383835;
+        --border:         rgba(255, 255, 255, 0.10);
+      }
+    }
+
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page-plane:     #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255, 255, 255, 0.10);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--page-plane);
+      color: var(--text-primary);
+      font-family: var(--font);
+    }
+
+    /* ---------------------------------------------------------------------
+     * Header institucional
+     * ------------------------------------------------------------------- */
+    .app-header {
+      height: 56px;
+      background: linear-gradient(135deg, #8B1A14 0%, var(--brand-red) 60%, var(--brand-red-dk) 100%);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 14px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.22);
+    }
+    .header-logo {
+      width: 34px;
+      height: 34px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      padding: 4px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    }
+    .header-title { flex: 1; min-width: 0; }
+    .header-title h1 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #ffffff;
+      line-height: 1.2;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-title p {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 1px 0 0;
+    }
+    .header-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.85);
+      flex-shrink: 0;
+    }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; animation: blink 2.4s ease-in-out infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    .btn-header-ghost {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      cursor: pointer;
+      flex-shrink: 0;
+      font-size: 0.9rem;
+    }
+    .btn-header-ghost:hover { background: rgba(255, 255, 255, 0.2); }
+
+    /* ---------------------------------------------------------------------
+     * Barra de contexto (IE actual)
+     * ------------------------------------------------------------------- */
+    .context-bar {
+      background: var(--text-primary);
+      padding: 7px 22px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    :root:not([data-theme="dark"]) .context-bar { background: #3C3E43; }
+    .context-tag {
+      font-size: 9.5px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      padding: 2px 7px;
+    }
+    .context-name { font-size: 12px; font-weight: 500; color: rgba(255, 255, 255, 0.85); }
+    .btn-refresh {
+      margin-left: auto;
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: rgba(255, 255, 255, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .btn-refresh:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
+    .btn-refresh.spinning svg { animation: spin 0.9s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .refresh-status { font-size: 11px; color: rgba(255, 255, 255, 0.45); font-style: italic; }
+
+    /* ---------------------------------------------------------------------
+     * Contenido
+     * ------------------------------------------------------------------- */
+    .app-shell {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 20px 16px 48px;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-top: 2px;
+    }
+
+    .btn-ghost, .btn-primary, .btn-secondary {
+      font-family: var(--font);
+      font-size: 0.85rem;
+      border-radius: 8px;
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      background: var(--surface-1);
+      color: var(--text-primary);
+    }
+    .btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+    .btn-primary {
+      background: var(--brand-red);
+      border-color: var(--brand-red);
+      color: #ffffff;
+      font-weight: 600;
+      padding: 10px 20px;
+      font-size: 0.9rem;
+    }
+    .btn-primary:hover { background: var(--brand-red-dk); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-ghost:hover, .btn-secondary:hover { background: var(--gridline); }
+
+    .status-banner {
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      font-size: 0.88rem;
+      border: 1px solid var(--status-critical);
+      color: var(--status-critical);
+      background: rgba(var(--status-critical-rgb), 0.10);
+    }
+
+    /* Advertencia obligatoria de cobertura (Adenda Técnica
+     * F4-ADENDA-EMISION-RI-EBRJEC26, sección 8.1) -- se ubica al inicio
+     * del reporte, antes del Panorama general, destacada visualmente. */
+    .cobertura-warning-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+      border: 1px solid var(--status-warning);
+      background: rgba(var(--status-warning-rgb), 0.12);
+    }
+    .cobertura-warning-icon { font-size: 1.1rem; flex-shrink: 0; line-height: 1.4; }
+    .cobertura-warning-banner p {
+      margin: 0;
+      font-size: 0.88rem;
+      line-height: 1.55;
+      color: var(--text-primary);
+    }
+    .cobertura-warning-banner p strong.cobertura-warning-label { color: var(--status-warning); }
+    .cobertura-warning-banner p strong.cobertura-warning-highlight { color: var(--text-primary); }
+
+    .loading {
+      color: var(--text-secondary);
+      padding: 24px 0;
+      text-align: center;
+    }
+    .loading::before {
+      content: "⏳";
+      display: block;
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    /* ---------------------------------------------------------------------
+     * Reporte institucional (11 secciones, un solo reporte por IE)
+     * ------------------------------------------------------------------- */
+    .report-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      margin-bottom: 14px;
+    }
+    .btn-descargar-pdf {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Encabezado agregado solo en la captura del PDF -- no se muestra en
+     * el dashboard en vivo (ver descargarReporteComoPDF). */
+    .pdf-header {
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 3px solid var(--brand-red);
+    }
+    .pdf-header h1 {
+      margin: 0 0 6px;
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      text-transform: uppercase;
+      color: var(--brand-red);
+    }
+    .pdf-header p {
+      margin: 0;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+    }
+
+    /* Estados de pantalla completa: acceso inválido / primera vez */
+    .state-card {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 36px 28px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .state-icon { font-size: 34px; margin-bottom: 10px; }
+    .state-card h2 { font-size: 1.1rem; margin: 0 0 8px; }
+    .state-card p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      max-width: 480px;
+      margin: 0 auto 18px;
+    }
+
+    .card {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+    .card h2 {
+      font-size: 1rem;
+      margin: 0 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card h3 {
+      font-size: 0.88rem;
+      margin: 18px 0 8px;
+      color: var(--text-secondary);
+    }
+    .card h3:first-of-type { margin-top: 0; }
+
+    /* Encabezado de sección con número en chip circular, en vez de
+     * "3. Interpretación..." como texto plano. */
+    .section-heading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .section-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--brand-red-light);
+      color: var(--brand-red);
+      font-size: 0.8rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .section-heading h2 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    /* Distingue el texto narrativo (prosa fluida: interpretaciones,
+     * énfasis, síntesis, cobertura) de las tablas con un acento tipo
+     * cita, para que se lea como contenido redactado, no como dato. */
+    .texto-reporte {
+      border-left: 3px solid var(--brand-red-light);
+      padding-left: 14px;
+    }
+
+    /* Celdas de porcentaje coloreadas según el nivel de la rúbrica, para
+     * que la lectura de la tabla de distribución sea más rápida que solo
+     * números en blanco y negro. */
+    .pct-cell {
+      display: inline-block;
+      min-width: 2.6em;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .pct-cell.tone-necesita { background: rgba(var(--status-critical-rgb), 0.12); color: var(--status-critical); }
+    .pct-cell.tone-desarrollo { background: rgba(var(--status-warning-rgb), 0.18); color: var(--status-warning); }
+    .pct-cell.tone-favorable { background: rgba(var(--status-good-rgb), 0.14); color: var(--status-good); }
+    .pct-cell.tone-neutro { background: var(--page-plane); color: var(--text-secondary); font-weight: 500; }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat-tile {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .stat-tile .label {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+    .stat-tile .value {
+      font-size: 1.6rem;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .stat-tile .value.small { font-size: 1.00rem; white-space: nowrap; }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-top: 6px;
+    }
+    .badge.warning { background: rgba(var(--status-warning-rgb), 0.22); color: var(--status-warning); }
+    .badge.good { background: rgba(var(--status-good-rgb), 0.18); color: var(--status-good); }
+    .badge.critical { background: rgba(var(--status-critical-rgb), 0.18); color: var(--status-critical); }
+
+    .purpose-banner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--brand-red);
+      border-radius: 0 12px 12px 0;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+    }
+    .purpose-banner p {
+      margin: 0;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      flex: 1;
+      min-width: 240px;
+    }
+    .purpose-banner .badge { flex-shrink: 0; }
+
+    .bullet-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .bullet-list li {
+      font-size: 0.85rem;
+      line-height: 1.5;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--page-plane);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .data-table th, .data-table td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--gridline);
+      font-variant-numeric: tabular-nums;
+    }
+    .data-table th {
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      background: var(--page-plane);
+      position: sticky;
+      top: 0;
+    }
+    .data-table tbody tr:nth-child(even) { background: var(--page-plane); }
+    .data-table tbody tr:hover { background: var(--brand-red-light); }
+    .table-scroll { overflow-x: auto; max-height: 420px; overflow-y: auto; border-radius: 8px; }
+
+    .texto-reporte {
+      white-space: pre-line;
+      font-size: 0.92rem;
+      line-height: 1.55;
+      color: var(--text-primary);
+    }
+    .texto-reporte + .texto-reporte { margin-top: 12px; }
+
+    .empty-note { color: var(--text-muted); font-size: 0.82rem; }
+    .muted { color: var(--text-muted); }
+
+    /* ---------------------------------------------------------------------
+     * Footer institucional
+     * ------------------------------------------------------------------- */
+    .app-footer {
+      background: var(--surface-1);
+      border-top: 1px solid var(--border);
+      padding: 10px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .fl { flex: 1; height: 1px; max-width: 40px; }
+    .fl.r { background: var(--brand-red); opacity: 0.5; }
+    .fl.g { background: var(--gridline); }
+    .ft {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.4;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 640px;
+    }
+    .ft-shield { color: var(--text-muted); flex-shrink: 0; }
+
+    @media (max-width: 640px) {
+      .app-header { padding: 0 12px; }
+      .header-badge { display: none; }
+    }
+  </style>
+  <!-- Exportación del reporte a PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-logo">
+      <img src="https://guias.servicios.gob.pe/static/archivos/gb3.svg" alt="Escudo Perú" width="26" height="26" />
+    </div>
+    <div class="header-title">
+      <h1>Reporte Institucional 2</h1>
+      <p>Sesiones de aprendizaje V1 → V2 · Hito 2 Directivo</p>
+    </div>
+    <div class="header-badge"><span class="badge-dot"></span>En línea</div>
+    <button id="theme-toggle" class="btn-header-ghost" aria-label="Cambiar tema claro/oscuro" title="Cambiar tema">🌓</button>
+  </header>
+
+  <div class="context-bar" id="context-bar">
+    <span class="context-tag">IE</span>
+    <span class="context-name" id="context-name">Cargando…</span>
+    <button id="btn-refresh" class="btn-refresh" title="Revisar actualizaciones" hidden>
+      <svg viewBox="0 0 16 16" fill="none" width="14" height="14"><path d="M13.5 8a5.5 5.5 0 11-1.6-3.9M13.5 2v3.5H10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <span id="refresh-status" class="refresh-status" hidden></span>
+  </div>
+
+  <div class="app-shell">
+    <section class="purpose-banner" aria-label="Propósito del instrumento">
+      <p>
+        Reporte Institucional 2 — <strong>Sesiones de aprendizaje V1 y V2</strong>. Ofrece una lectura agregada
+        de la situación observada en las Sesiones V2, del avance respecto de una línea de base comparable y de los
+        aspectos que requieren reflexión colectiva. Es insumo para la RTC 2 — no sustituye la conducción del
+        análisis colegiado por el directivo.
+      </p>
+      <span class="badge good">Sin identificación docente individual</span>
+    </section>
+
+    <!-- Acceso inválido: faltan parámetros de Moodle en la URL -->
+    <section id="access-error" class="state-card" hidden>
+      <div class="state-icon">⚠️</div>
+      <h2>Acceso incorrecto</h2>
+      <p>
+        Este reporte debe abrirse desde la plataforma Moodle. No se recibieron los datos de
+        usuario y programa necesarios para identificar tu institución educativa.
+      </p>
+    </section>
+
+    <div id="loading" class="loading" hidden>Cargando reporte…</div>
+    <div id="status-banner" class="status-banner" role="alert" hidden></div>
+
+    <!-- No fue posible generar el reporte automáticamente (faltan datos o falló la generación) -->
+    <section id="empty-first-time" class="state-card" hidden>
+      <div class="state-icon" id="empty-first-time-icon">⚠️</div>
+      <h2 id="empty-first-time-title">No se pudo generar el reporte automáticamente</h2>
+      <p id="empty-first-time-text">
+        Ocurrió un problema al intentar generar el reporte institucional.
+      </p>
+      <button id="btn-generar-primero" class="btn-primary">Reintentar</button>
+    </section>
+
+
+    <main id="report-content" hidden>
+      <div class="report-actions">
+        <button id="btn-descargar-pdf" class="btn-secondary btn-descargar-pdf">
+          <span aria-hidden="true">⬇</span> Descargar PDF
+        </button>
+      </div>
+      <!-- Las 11 secciones del reporte, generadas dinámicamente por
+           render() en JS -- ver renderReporte más abajo. -->
+      <div id="reporte-container"></div>
+    </main>
+  </div>
+
+  <footer class="app-footer">
+    <div class="fl r"></div><div class="fl g"></div>
+    <span class="ft">
+      <svg viewBox="0 0 14 14" fill="none" width="12" height="12" class="ft-shield"><path d="M7 1.5L2 3.5v4c0 2.5 2.2 4.5 5 5 2.8-.5 5-2.5 5-5v-4L7 1.5z" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>
+      Este reporte agrega evidencias institucionales sin identificar a ningún docente. Es insumo del análisis colegiado, no lo sustituye. Este servicio es generado con Inteligencia Artificial (IA).
+    </span>
+    <div class="fl g"></div><div class="fl r"></div>
+  </footer>
+
+  <script>
+"use strict";
+
+/* ---------------------------------------------------------------------
+ * Config: API base URL. La página se sirve desde el mismo origen que la
+ * API (FastAPI + Jinja2Templates), así que por defecto se usan rutas
+ * relativas. Priority: ?api= query param > localStorage > relativo.
+ * ------------------------------------------------------------------- */
+const params = new URLSearchParams(window.location.search);
+
+const API_BASE = (() => {
+  const fromQuery = params.get("api");
+  if (fromQuery) {
+    localStorage.setItem("api_base", fromQuery);
+    return fromQuery.replace(/\/$/, "");
+  }
+  return (localStorage.getItem("api_base") || "").replace(/\/$/, "");
+})();
+
+/* ---------------------------------------------------------------------
+ * Parámetros de acceso. En producción estos llegan en la URL desde el
+ * redirect de Moodle (botón del curso) — nunca se piden en un formulario.
+ * ------------------------------------------------------------------- */
+const CTX = {
+  userid: params.get("userid"),
+  courseid: params.get("courseid"),
+  cmid: params.get("cmid"),
+};
+
+/* ---------------------------------------------------------------------
+ * DOM references
+ * ------------------------------------------------------------------- */
+const el = {
+  contextBar: document.getElementById("context-bar"),
+  contextName: document.getElementById("context-name"),
+  btnRefresh: document.getElementById("btn-refresh"),
+  refreshStatus: document.getElementById("refresh-status"),
+  accessError: document.getElementById("access-error"),
+  emptyFirstTime: document.getElementById("empty-first-time"),
+  emptyFirstTimeIcon: document.getElementById("empty-first-time-icon"),
+  emptyFirstTimeTitle: document.getElementById("empty-first-time-title"),
+  emptyFirstTimeText: document.getElementById("empty-first-time-text"),
+  btnGenerarPrimero: document.getElementById("btn-generar-primero"),
+  statusBanner: document.getElementById("status-banner"),
+  loading: document.getElementById("loading"),
+  reportContent: document.getElementById("report-content"),
+  reporteContainer: document.getElementById("reporte-container"),
+  btnDescargarPdf: document.getElementById("btn-descargar-pdf"),
+  themeToggle: document.getElementById("theme-toggle"),
+};
+
+/* ---------------------------------------------------------------------
+ * Theme toggle (light/dark), persisted
+ * ------------------------------------------------------------------- */
+(function initTheme() {
+  const saved = localStorage.getItem("theme");
+  if (saved === "light" || saved === "dark") {
+    document.documentElement.setAttribute("data-theme", saved);
+  }
+  el.themeToggle.addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme");
+    const next = current === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("theme", next);
+  });
+})();
+
+/* ---------------------------------------------------------------------
+ * API calls
+ * ------------------------------------------------------------------- */
+async function apiGenerar(userid, courseid, cmid) {
+  const url = `${API_BASE}/reporte_ri2/generar?courseid=${encodeURIComponent(courseid)}&cmid=${encodeURIComponent(cmid)}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userid: Number(userid) }),
+  });
+  return handleResponse(res);
+}
+
+async function apiConsultar(userid) {
+  const url = `${API_BASE}/reporte_ri2/consultar?userid=${encodeURIComponent(userid)}`;
+  const res = await fetch(url);
+  return handleResponse(res);
+}
+
+async function handleResponse(res) {
+  let body = null;
+  try {
+    body = await res.json();
+  } catch {
+    // no-op: respuesta sin cuerpo JSON
+  }
+  if (!res.ok) {
+    const detail = (body && body.detail) || `Error HTTP ${res.status}`;
+    const err = new Error(detail);
+    err.status = res.status;
+    throw err;
+  }
+  return body;
+}
+
+/* ---------------------------------------------------------------------
+ * UI state helpers
+ * ------------------------------------------------------------------- */
+function showOnly(...visibleIds) {
+  const all = ["access-error", "empty-first-time", "report-content"];
+  for (const id of all) {
+    document.getElementById(id).hidden = !visibleIds.includes(id);
+  }
+}
+
+function setLoading(isLoading) {
+  el.loading.hidden = !isLoading;
+  if (isLoading) el.statusBanner.hidden = true;
+}
+
+function showError(message) {
+  el.statusBanner.textContent = message;
+  el.statusBanner.hidden = false;
+}
+
+function clearError() {
+  el.statusBanner.hidden = true;
+  el.statusBanner.textContent = "";
+}
+
+/* ---------------------------------------------------------------------
+ * Arranque: todo depende de los parámetros recibidos en la URL
+ * ------------------------------------------------------------------- */
+async function init() {
+  if (!CTX.userid) {
+    el.contextBar.hidden = true;
+    showOnly("access-error");
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const data = await apiConsultar(CTX.userid);
+    setLoading(false);
+    clearError();
+
+    if (data.accion === "mostrar") {
+      render(data.reporte);
+      showOnly("report-content");
+      el.btnRefresh.hidden = !(CTX.courseid && CTX.cmid);
+      checkForUpdates(data.reporte);
+      return;
+    }
+
+    // data.accion === "generar": no hay reporte vigente (o cambiaron las
+    // comparaciones V1→V2 válidas), se dispara la generación automáticamente.
+    await generarReporte();
+  } catch (err) {
+    setLoading(false);
+
+    if (err.status === 404) {
+      showOnly("access-error");
+      el.accessError.querySelector("p").textContent =
+        "Tu usuario no está asociado a ninguna institución educativa registrada.";
+      return;
+    }
+
+    if (err.status === 403) {
+      el.contextBar.hidden = true;
+      showOnly("access-error");
+      el.accessError.querySelector("p").textContent =
+        "Este reporte está disponible únicamente para el directivo de la institución.";
+      return;
+    }
+
+    showOnly("empty-first-time");
+    showBlockedState({
+      title: "No se pudo cargar el reporte",
+      text: err.message || "Ocurrió un error inesperado al consultar el reporte.",
+      allowRetry: true,
+    });
+  }
+}
+
+/* Muestra el estado de bloqueo (faltan datos o falló la generación),
+ * con o sin botón de reintento según si tiene sentido reintentar. */
+function showBlockedState({ title, text, allowRetry }) {
+  el.emptyFirstTimeTitle.textContent = title;
+  el.emptyFirstTimeText.textContent = text;
+  el.btnGenerarPrimero.hidden = !allowRetry;
+}
+
+/* Genera el reporte automáticamente (primera vez, o como reintento tras
+ * un error). El directivo nunca tiene que pedirlo explícitamente salvo
+ * que algo haya fallado. */
+async function generarReporte() {
+  if (!CTX.courseid || !CTX.cmid) {
+    el.contextName.textContent = "Reporte no disponible";
+    showOnly("empty-first-time");
+    showBlockedState({
+      title: "No es posible generar el reporte",
+      text: "Faltan los datos de curso (courseid/cmid) en la URL de acceso. Vuelve a ingresar desde el enlace del programa en Moodle.",
+      allowRetry: false,
+    });
+    return;
+  }
+
+  el.contextName.textContent = "Generando reporte institucional…";
+  el.loading.textContent = "Generando tu reporte institucional, esto puede tardar unos segundos…";
+  setLoading(true);
+  clearError();
+  try {
+    const data = await apiGenerar(CTX.userid, CTX.courseid, CTX.cmid);
+    setLoading(false);
+    el.loading.textContent = "Cargando reporte…";
+    render(data);
+    showOnly("report-content");
+    el.btnRefresh.hidden = false;
+  } catch (err) {
+    setLoading(false);
+    el.loading.textContent = "Cargando reporte…";
+
+    showOnly("empty-first-time");
+    showBlockedState({
+      title: "No se pudo generar el reporte",
+      text: err.message || "Ocurrió un error al generar el reporte institucional.",
+      allowRetry: true,
+    });
+  }
+}
+
+el.btnGenerarPrimero.addEventListener("click", () => {
+  generarReporte();
+});
+
+/* Revisión de actualizaciones: barata cuando no cambió nada (el backend
+ * solo vuelve a llamar al LLM si cambió el número de comparaciones V1→V2 válidas). */
+async function checkForUpdates(currentData) {
+  if (!CTX.courseid || !CTX.cmid) return;
+  el.refreshStatus.hidden = false;
+  el.refreshStatus.textContent = "Revisando actualizaciones…";
+  el.btnRefresh.classList.add("spinning");
+  try {
+    const fresh = await apiGenerar(CTX.userid, CTX.courseid, CTX.cmid);
+    if (fresh.fecha_generacion !== currentData.fecha_generacion) {
+      render(fresh);
+      el.refreshStatus.textContent = "Reporte actualizado con nueva información.";
+      setTimeout(() => { el.refreshStatus.hidden = true; }, 4000);
+    } else {
+      el.refreshStatus.hidden = true;
+    }
+  } catch (err) {
+    console.warn("No se pudo verificar actualizaciones:", err.message);
+    el.refreshStatus.hidden = true;
+  } finally {
+    el.btnRefresh.classList.remove("spinning");
+  }
+}
+
+el.btnRefresh.addEventListener("click", () => {
+  if (el.btnRefresh.classList.contains("spinning")) return;
+  const current = lastRenderedData;
+  if (current) checkForUpdates(current);
+});
+
+init();
+
+/* ---------------------------------------------------------------------
+ * Render -- Reporte Institucional 2 (F4 - EBR 2026), estructura de la
+ * Ficha Técnica RI2, sección 8. Cada renderXxx() arma una
+ * sección a partir de los campos ya calculados que devuelve
+ * core.generar_reporte -- el frontend no recalcula nada, solo presenta.
+ * ------------------------------------------------------------------- */
+let lastRenderedData = null;
+
+const NIVEL_COLUMNAS = [
+  { key: "pct_inicio", label: "Inicio", tone: "tone-necesita" },
+  { key: "pct_en_desarrollo", label: "En desarrollo", tone: "tone-desarrollo" },
+  { key: "pct_logrado", label: "Logrado", tone: "tone-favorable" },
+  { key: "pct_destacado", label: "Destacado", tone: "tone-favorable" },
+  { key: "pct_inicio_en_desarrollo", label: "Inicio + En desarrollo", tone: "tone-neutro" },
+  { key: "pct_logrado_destacado", label: "Logrado + Destacado", tone: "tone-neutro" },
+];
+
+function sectionCard(titulo) {
+  const section = document.createElement("section");
+  section.className = "card";
+
+  const match = titulo.match(/^(\d+(?:-bis)?)\.\s*(.+)$/);
+  const h2 = document.createElement("h2");
+
+  if (match) {
+    const [, numero, resto] = match;
+    const heading = document.createElement("div");
+    heading.className = "section-heading";
+    const chip = document.createElement("span");
+    chip.className = "section-number";
+    chip.textContent = numero;
+    h2.textContent = resto;
+    heading.append(chip, h2);
+    section.appendChild(heading);
+  } else {
+    h2.textContent = titulo;
+    section.appendChild(h2);
+  }
+
+  return section;
+}
+
+function addBullet(list, texto) {
+  const li = document.createElement("li");
+  li.textContent = texto;
+  list.appendChild(li);
+}
+
+function emptyNote(container, texto) {
+  const p = document.createElement("p");
+  p.className = "empty-note";
+  p.textContent = texto;
+  container.appendChild(p);
+}
+
+function render(data) {
+  lastRenderedData = data;
+  el.contextName.textContent = data.nombre_ie || "—";
+
+  // COB_CONFIDENCIAL: solo estado de cobertura (adenda 8.3) -- sin
+  // distribuciones, porcentajes ni lectura por aspecto.
+  if (data.estado_cobertura === "COB_CONFIDENCIAL") {
+    el.reporteContainer.replaceChildren(renderEncabezado(data), renderConfidencial(data));
+    return;
+  }
+
+  const nodos = [renderEncabezado(data)];
+  // La advertencia de cobertura va ANTES del panorama general (adenda 8.1).
+  const advertencia = renderAdvertenciaCobertura(data);
+  if (advertencia) nodos.push(advertencia);
+  nodos.push(
+    renderPanoramaGeneral(data),
+    renderResultadoV2(data),
+    renderInterpretacion(data),
+    renderAvance(data),
+    renderEnfasis(data),
+    renderAnalisisNoDisponible(data),
+  );
+  if (data.lectura_por_nivel) nodos.push(renderLecturaPorNivel(data));
+  else nodos.push(renderLecturaPorNivelOmitida());
+  nodos.push(
+    renderContraste(data),
+    renderPreguntasRTC(data),
+    renderSintesis(data),
+    renderCobertura(data),
+  );
+  el.reporteContainer.replaceChildren(...nodos);
+}
+
+function statTile(label, value, opts = {}) {
+  const tile = document.createElement("div");
+  tile.className = "stat-tile";
+
+  const labelEl = document.createElement("div");
+  labelEl.className = "label";
+  labelEl.textContent = label;
+
+  const valueEl = document.createElement("div");
+  valueEl.className = "value" + (opts.small ? " small" : "");
+  valueEl.textContent = value;
+
+  tile.append(labelEl, valueEl);
+
+  if (opts.badge) {
+    const badge = document.createElement("span");
+    badge.className = `badge ${opts.badge.tone}`;
+    badge.textContent = opts.badge.text;
+    tile.appendChild(badge);
+  }
+
+  return tile;
+}
+
+/* Formato de cifras: coma decimal, como en el modelo del reporte */
+function fmtNum(x) {
+  return Number(x).toFixed(1).replace(".", ",");
+}
+function fmtPct(x) {
+  return `${fmtNum(x)} %`;
+}
+function fmtPp(x) {
+  const signo = x > 0 ? "+" : x < 0 ? "-" : "";
+  return `${signo}${fmtNum(Math.abs(x))} p.p.`;
+}
+
+function parrafo(section, texto, opts = {}) {
+  const p = document.createElement("div");
+  p.className = "texto-reporte";
+  if (opts.marginTop) p.style.marginTop = opts.marginTop;
+  p.textContent = texto;
+  section.appendChild(p);
+  return p;
+}
+
+function notaPie(section, texto) {
+  const nota = document.createElement("p");
+  nota.className = "empty-note";
+  nota.style.marginTop = "10px";
+  nota.textContent = texto;
+  section.appendChild(nota);
+}
+
+function badgeCobertura(data) {
+  switch (data.estado_cobertura) {
+    case "COB_SUFICIENTE": return { tone: "good", text: "Cobertura suficiente" };
+    case "COB_BAJO_UMBRAL": return { tone: "warning", text: "Bajo el umbral" };
+    default: return { tone: "critical", text: "Solo estado de cobertura" };
+  }
+}
+
+/* "0. Reporte general de la institución" (datos de la institución) */
+function renderEncabezado(data) {
+  const section = sectionCard("Datos de la institución");
+
+  const statRow = document.createElement("div");
+  statRow.className = "stat-row";
+
+  statRow.appendChild(statTile("Docentes participantes", data.n_docentes_activos ?? "—"));
+  // Docentes que no aprobaron el Curso 2: no forman parte del universo de
+  // análisis (solo participan quienes lo aprobaron). Es un conteo de
+  // cobertura, no un resultado, por eso se muestra también en COB_CONFIDENCIAL.
+  statRow.appendChild(statTile("No aprobaron el Curso 2", data.n_no_aprobaron_c2 ?? 0, { small: true }));
+  statRow.appendChild(statTile("Comparaciones V1→V2 válidas", data.n_comparaciones_validas ?? "—"));
+
+  // En COB_CONFIDENCIAL no se muestra ningún porcentaje (adenda 6 y 13).
+  if (data.estado_cobertura !== "COB_CONFIDENCIAL") {
+    statRow.appendChild(
+      statTile("Cobertura comparativa", fmtPct(data.pct_cobertura ?? 0), { badge: badgeCobertura(data) })
+    );
+  } else {
+    statRow.appendChild(statTile("Estado de cobertura", "Confidencial", { small: true, badge: badgeCobertura(data) }));
+  }
+
+  // Siempre en hora de Lima/Perú, sin importar la zona horaria del
+  // navegador -- fecha_generacion viene del backend en UTC explícito.
+  const fecha = data.fecha_generacion
+    ? new Date(data.fecha_generacion).toLocaleString("es-PE", {
+        day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+        timeZone: "America/Lima",
+      })
+    : "—";
+  statRow.appendChild(statTile("Fecha de corte", fecha, { small: true }));
+
+  section.appendChild(statRow);
+  return section;
+}
+
+/* COB_CONFIDENCIAL: solo estado de cobertura (adenda 8.3) */
+function renderConfidencial(data) {
+  const section = sectionCard("Estado de cobertura del reporte");
+  parrafo(section, data.texto_confidencial || "");
+
+  const detalle = document.createElement("ul");
+  detalle.className = "bullet-list";
+  detalle.style.marginTop = "10px";
+  addBullet(detalle, `Docentes que no aprobaron el Curso 2 y no forman parte del análisis: ${data.n_no_aprobaron_c2 ?? 0}.`);
+  addBullet(detalle, `Comparaciones V1→V2 válidas: ${data.n_comparaciones_validas ?? 0}.`);
+  addBullet(detalle, `Evidencias V2 no válidas: ${data.n_no_validas ?? 0}.`);
+  addBullet(detalle, `Docentes sin Sesión V2 al corte: ${data.n_sin_entrega_v2 ?? 0}.`);
+  if (data.umbral_requerido != null) {
+    addBullet(detalle, `Comparaciones válidas requeridas para representar a la institución: ${data.umbral_requerido}.`);
+  }
+  section.appendChild(detalle);
+  return section;
+}
+
+/* Advertencia obligatoria de cobertura (adenda RE-04 / sección 8.1). Retorna
+ * null si no aplica. Cuando aplica, va siempre al inicio del reporte, antes
+ * de "1. Panorama general". El texto viene armado por el backend (Python, con
+ * las cifras exactas); el frontend solo lo presenta destacado. */
+function renderAdvertenciaCobertura(data) {
+  if (!data.advertencia_cobertura) return null;
+
+  const div = document.createElement("div");
+  div.className = "cobertura-warning-banner";
+  div.setAttribute("role", "alert");
+
+  const icono = document.createElement("span");
+  icono.className = "cobertura-warning-icon";
+  icono.setAttribute("aria-hidden", "true");
+  icono.textContent = "⚠️";
+
+  const texto = document.createElement("p");
+  const etiqueta = document.createElement("strong");
+  etiqueta.className = "cobertura-warning-label";
+  etiqueta.textContent = "Advertencia de cobertura. ";
+  texto.appendChild(etiqueta);
+
+  // La frase que exige tratar los hallazgos como hipótesis es la instrucción
+  // central de la advertencia: se resalta solo al presentar, no en el dato.
+  const FRASE_A_RESALTAR = "los hallazgos de este reporte deben tratarse solo como hipótesis por contrastar";
+  const cuerpo = data.advertencia_cobertura;
+  const inicioFrase = cuerpo.indexOf(FRASE_A_RESALTAR);
+
+  if (inicioFrase === -1) {
+    texto.appendChild(document.createTextNode(cuerpo));
+  } else {
+    const finFrase = inicioFrase + FRASE_A_RESALTAR.length;
+    texto.appendChild(document.createTextNode(cuerpo.slice(0, inicioFrase)));
+    const destacado = document.createElement("strong");
+    destacado.className = "cobertura-warning-highlight";
+    destacado.textContent = cuerpo.slice(inicioFrase, finFrase);
+    texto.appendChild(destacado);
+    texto.appendChild(document.createTextNode(cuerpo.slice(finFrase)));
+  }
+
+  div.append(icono, texto);
+  return div;
+}
+
+/* "1. Panorama general" */
+function renderPanoramaGeneral(data) {
+  const section = sectionCard("1. Panorama general");
+  tablaSimple(
+    section,
+    [
+      { label: "Hallazgo", key: "hallazgo" },
+      { label: "Información que lo sustenta", key: "informacion" },
+    ],
+    data.panorama_hallazgos || [],
+    "Sin hallazgos disponibles."
+  );
+  if (data.advertencia_cobertura) {
+    notaPie(section, "Estos hallazgos describen únicamente las comparaciones revisadas y deben tratarse como hipótesis por contrastar con otras fuentes de la institución.");
+  }
+  return section;
+}
+
+/* Arma la tabla de distribución (4 niveles + agrupados) para una lista
+ * de aspectos -- reutilizada por "Resultado general" y "Lectura por
+ * nivel". */
+function tablaDistribucion(distribucion) {
+  const wrap = document.createElement("div");
+  wrap.className = "table-scroll";
+  const table = document.createElement("table");
+  table.className = "data-table";
+
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  for (const h of ["Aspecto revisado", ...NIVEL_COLUMNAS.map((c) => c.label)]) {
+    const th = document.createElement("th");
+    th.textContent = h;
+    headRow.appendChild(th);
+  }
+  thead.appendChild(headRow);
+
+  const tbody = document.createElement("tbody");
+  for (const c of distribucion) {
+    const tr = document.createElement("tr");
+    const tdNombre = document.createElement("td");
+    tdNombre.textContent = c.nombre;
+    tr.appendChild(tdNombre);
+    for (const col of NIVEL_COLUMNAS) {
+      const td = document.createElement("td");
+      const pill = document.createElement("span");
+      pill.className = `pct-cell ${col.tone}`;
+      pill.textContent = `${c[col.key] ?? 0}%`;
+      td.appendChild(pill);
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+
+  table.append(thead, tbody);
+  wrap.appendChild(table);
+  return wrap;
+}
+
+
+/* "2. Resultado general de las Sesiones V2" */
+function renderResultadoV2(data) {
+  const section = sectionCard("2. Resultado general de las Sesiones V2");
+  const distribucion = data.distribucion_v2_por_aspecto || [];
+  if (!distribucion.length) {
+    emptyNote(section, "Sin datos de distribución disponibles.");
+    return section;
+  }
+  parrafo(section, "La siguiente tabla muestra la distribución de los resultados de las Sesiones V2 dentro de la población con comparación válida V1→V2.");
+  section.lastChild.style.marginBottom = "10px";
+  section.appendChild(tablaDistribucion(distribucion));
+  notaPie(
+    section,
+    '"Inicio + En desarrollo" y "Logrado + Destacado" son agrupamientos de lectura; no constituyen niveles nuevos de evaluación.'
+  );
+  return section;
+}
+
+/* "3. Interpretación y análisis por aspecto" */
+function renderInterpretacion(data) {
+  const section = sectionCard("3. Interpretación y análisis por aspecto");
+  const distribucion = data.distribucion_v2_por_aspecto || [];
+  const interpretaciones = data.interpretaciones_por_aspecto || {};
+
+  if (!distribucion.length) {
+    emptyNote(section, "Sin interpretación disponible.");
+    return section;
+  }
+  for (const c of distribucion) {
+    const texto = interpretaciones[c.criterio_id];
+    if (!texto) continue;
+    const h3 = document.createElement("h3");
+    h3.textContent = c.nombre;
+    section.appendChild(h3);
+    parrafo(section, texto);
+  }
+  return section;
+}
+
+/* Tabla V1 favorable / V2 favorable / cambio (reutilizada en "3-bis" y "7") */
+function tablaAvance(section, avance) {
+  tablaSimple(
+    section,
+    [
+      { label: "Aspecto evaluado", key: "nombre" },
+      { label: "V1 favorable", render: (a) => fmtPct(a.pct_favorable_v1) },
+      { label: "V2 favorable", render: (a) => fmtPct(a.pct_favorable_v2) },
+      { label: "Cambio observado", render: (a) => fmtPp(a.avance_pp) },
+    ],
+    avance,
+    "Sin datos de avance disponibles."
+  );
+}
+
+/* "3-bis. Avance institucional respecto de la línea de base" */
+function renderAvance(data) {
+  const section = sectionCard("3-bis. Avance institucional respecto de la línea de base");
+  const avance = data.avance_por_aspecto || [];
+  parrafo(
+    section,
+    `Para analizar el avance se compara, en la misma población de ${data.n_comparaciones_validas ?? 0} trayectorias ` +
+    "válidas, la proporción de resultados Logrado + Destacado en V1 y en V2. La variación se expresa en puntos porcentuales."
+  );
+  section.lastChild.style.marginBottom = "10px";
+  tablaAvance(section, avance);
+  notaPie(
+    section,
+    "La línea de base se recalcula sobre la población con comparación válida V1→V2, por lo que puede diferir de la " +
+    "presentada en el Reporte Institucional 1. La variación es descriptiva: su signo no permite atribuir causas ni " +
+    "efectos a una intervención específica, y la magnitud del cambio por sí sola no permite afirmar que los avances " +
+    "estén consolidados."
+  );
+  return section;
+}
+
+/* "4. Énfasis del programa" */
+function renderEnfasis(data) {
+  const section = sectionCard("4. Énfasis del programa");
+  const enfasis = data.enfasis_lectura || [];
+  if (!enfasis.length) {
+    emptyNote(section, "Sin información de énfasis disponible.");
+    return section;
+  }
+  for (const e of enfasis) {
+    const h3 = document.createElement("h3");
+    h3.textContent = e.enfasis;
+    section.appendChild(h3);
+    parrafo(section, e.texto_permitido);
+  }
+  return section;
+}
+
+/* "5. Dificultades que persisten, naturaleza de los cambios y logros
+ * consolidados": hoy la base no tiene los objetos de F2 que los sustentan
+ * (tipo de cambio, situaciones comparativas, dificultades persistentes de
+ * V1 y progresión global), y los documentos prohíben reconstruirlos. */
+function renderAnalisisNoDisponible() {
+  const section = sectionCard("5. Dificultades que persisten, naturaleza de los cambios y logros consolidados");
+  parrafo(
+    section,
+    "Esta versión del reporte todavía no incluye la lectura sobre las dificultades que persisten desde la situación " +
+    "inicial, sobre la naturaleza de los cambios registrados ni sobre los logros consolidados, porque los resultados " +
+    "comparativos que los sustentan aún no están disponibles en el sistema. Durante la RTC 2 conviene abordar estas " +
+    "preguntas con las matrices de análisis y las evidencias de implementación."
+  );
+  return section;
+}
+
+/* "7. Lectura diferenciada por nivel educativo" */
+function renderLecturaPorNivel(data) {
+  const section = sectionCard("7. Lectura diferenciada por nivel educativo");
+  const lectura = data.lectura_por_nivel || {};
+  const niveles = lectura.niveles || [];
+
+  if (!niveles.length) {
+    emptyNote(section, "No se dispone de información de nivel educativo para esta lectura.");
+    return section;
+  }
+  for (const nivel of niveles) {
+    const h3 = document.createElement("h3");
+    h3.textContent = `${nivel.nivel_educativo} (${nivel.n} comparaciones válidas)`;
+    section.appendChild(h3);
+    tablaAvance(section, nivel.avance_por_aspecto || []);
+  }
+  notaPie(section, "Esta lectura no establece rankings ni comparaciones de calidad entre niveles educativos.");
+  return section;
+}
+
+/* Bajo umbral: la lectura por nivel se omite (adenda 8.2) */
+function renderLecturaPorNivelOmitida() {
+  const section = sectionCard("7. Lectura diferenciada por nivel educativo");
+  emptyNote(section, "La cobertura no permite una lectura diferenciada confiable por nivel educativo.");
+  return section;
+}
+
+/* "8. Lo que conviene contrastar con otras evidencias" */
+function renderContraste(data) {
+  const section = sectionCard("8. Lo que conviene contrastar con otras evidencias durante la RTC 2");
+  tablaSimple(
+    section,
+    [
+      { label: "Lo que muestra el reporte", key: "hallazgo" },
+      { label: "Otras evidencias que conviene considerar", key: "fuente_sugerida" },
+      { label: "Para comprender mejor", key: "pregunta" },
+    ],
+    data.aspectos_contraste || [],
+    "Sin aspectos de contraste disponibles."
+  );
+  return section;
+}
+
+/* "9. Preguntas movilizadoras para la RTC 2" */
+function renderPreguntasRTC(data) {
+  const section = sectionCard("9. Preguntas movilizadoras para la RTC 2");
+  const preguntas = data.preguntas_rtc || [];
+  if (!preguntas.length) {
+    emptyNote(section, "Sin preguntas movilizadoras disponibles.");
+    return section;
+  }
+  const ul = document.createElement("ul");
+  ul.className = "bullet-list";
+  for (const p of preguntas) addBullet(ul, p);
+  section.appendChild(ul);
+  return section;
+}
+
+/* "10. Síntesis del análisis para la RTC 2" (en bajo umbral: "Hipótesis
+ * para el análisis de la RTC 2", adenda 8.2) */
+function renderSintesis(data) {
+  const section = sectionCard(`10. ${data.titulo_sintesis || "Síntesis del análisis para la RTC 2"}`);
+  parrafo(section, data.sintesis_institucional || "Sin síntesis disponible.");
+  return section;
+}
+
+/* "11. Información sobre la cobertura y el alcance del reporte" */
+function renderCobertura(data) {
+  const section = sectionCard("11. Información sobre la cobertura y el alcance del reporte");
+  const n = data.n_comparaciones_validas ?? 0;
+  const total = data.n_docentes_activos ?? 0;
+
+  parrafo(
+    section,
+    `El presente reporte se construye sobre ${n} comparaciones válidas V1→V2 de un total de ${total} docentes ` +
+    `participantes en el programa, lo que representa el ${fmtPct(data.pct_cobertura ?? 0)} de la población institucional de referencia. ` +
+    "Los resultados de avance se calculan exclusivamente sobre las trayectorias comparables y no deben interpretarse " +
+    "automáticamente como una descripción de docentes que no cuentan con ambas evidencias válidas."
+  );
+
+  const ul = document.createElement("ul");
+  ul.className = "bullet-list";
+  ul.style.marginTop = "10px";
+  addBullet(ul, `${data.n_no_aprobaron_c2 ?? 0} docente(s) no aprobaron el Curso 2; el análisis considera únicamente a quienes lo aprobaron.`);
+  addBullet(ul, `${data.n_sin_referencia_v1 ?? 0} docente(s) no forman parte del análisis por no contar con una Sesión V1 válida de referencia.`);
+  addBullet(ul, `${data.n_no_validas ?? 0} docente(s) con una Sesión V2 no válida.`);
+  addBullet(ul, `${data.n_sin_entrega_v2 ?? 0} docente(s) sin Sesión V2 disponible al corte.`);
+  if (data.umbral_requerido != null) {
+    addBullet(ul, `Comparaciones válidas requeridas para representar al conjunto de docentes: ${data.umbral_requerido}.`);
+  }
+  section.appendChild(ul);
+
+  parrafo(
+    section,
+    "La información presentada es agregada y no identifica personas ni establece comparaciones individuales. Cuando la " +
+    "cobertura es limitada o la información disponible no permite una conclusión responsable, el reporte lo explicita " +
+    "en lugar de completar la interpretación mediante inferencias. Es un insumo para la RTC 2 y no constituye el cierre " +
+    "definitivo de la trayectoria institucional.",
+    { marginTop: "10px" }
+  );
+  return section;
+}
+
+function tablaSimple(section, columnas, filas, vacioTexto) {
+  if (!filas.length) {
+    emptyNote(section, vacioTexto);
+    return;
+  }
+  const wrap = document.createElement("div");
+  wrap.className = "table-scroll";
+  const table = document.createElement("table");
+  table.className = "data-table";
+
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  for (const c of columnas) {
+    const th = document.createElement("th");
+    th.textContent = c.label;
+    headRow.appendChild(th);
+  }
+  thead.appendChild(headRow);
+
+  const tbody = document.createElement("tbody");
+  for (const fila of filas) {
+    const tr = document.createElement("tr");
+    for (const c of columnas) {
+      const td = document.createElement("td");
+      td.textContent = c.render ? c.render(fila) : fila[c.key];
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  table.append(thead, tbody);
+  wrap.appendChild(table);
+  section.appendChild(wrap);
+}
+
+
+
+/* ---------------------------------------------------------------------
+ * Descarga del reporte completo a PDF (html2pdf.js, cargada vía CDN con
+ * `defer` en <head>). Excluye el propio botón de descarga (se oculta
+ * temporalmente durante la captura).
+ * ------------------------------------------------------------------- */
+el.btnDescargarPdf.addEventListener("click", () => {
+  descargarReporteComoPDF(el.reporteContainer, el.btnDescargarPdf);
+});
+
+function descargarReporteComoPDF(contenidoEl, btnEl) {
+  if (typeof html2pdf === "undefined") {
+    console.error("html2pdf.js no cargó todavía; reintenta en un momento.");
+    return;
+  }
+
+  const nombreIe = lastRenderedData?.nombre_ie || "IE";
+  const nombreArchivo = `reporte_institucional_2_${nombreIe.replace(/[^\w]+/g, "_")}.pdf`;
+
+  const textoOriginal = btnEl.textContent;
+  btnEl.disabled = true;
+  btnEl.textContent = "Generando PDF…";
+
+  const reportActions = document.querySelector(".report-actions");
+  reportActions.style.display = "none";
+
+  /* Colchón temporal alrededor del contenido, para que el borde de las
+   * tarjetas nunca caiga justo en el límite del canvas de html2canvas. */
+  const parent = contenidoEl.parentNode;
+  const nextSibling = contenidoEl.nextSibling;
+  const buffer = document.createElement("div");
+  buffer.style.padding = "4px";
+  parent.insertBefore(buffer, contenidoEl);
+
+  const pdfHeader = document.createElement("div");
+  pdfHeader.className = "pdf-header";
+  const pdfTitle = document.createElement("h1");
+  pdfTitle.textContent = "Reporte Institucional 2 — Sesiones de aprendizaje V1 y V2";
+  const pdfSubtitle = document.createElement("p");
+  pdfSubtitle.textContent = nombreIe;
+  pdfHeader.append(pdfTitle, pdfSubtitle);
+  buffer.appendChild(pdfHeader);
+
+  buffer.appendChild(contenidoEl);
+
+  html2pdf()
+    .set({
+      margin: 10,
+      filename: nombreArchivo,
+      image: { type: "jpeg", quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ["avoid-all", "css", "legacy"] },
+    })
+    .from(buffer)
+    .save()
+    .catch((err) => {
+      console.error("Fallo al generar el PDF:", err);
+      alert("No se pudo generar el PDF. Intenta nuevamente en unos segundos.");
+    })
+    .finally(() => {
+      parent.insertBefore(contenidoEl, nextSibling);
+      buffer.remove();
+      reportActions.style.display = "";
+      btnEl.disabled = false;
+      btnEl.textContent = textoOriginal;
+    });
+}
+  </script>
+</body>
+</html>

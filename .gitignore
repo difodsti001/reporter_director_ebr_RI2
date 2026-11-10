@@ -1,0 +1,9 @@
+# Ignorar archivos de entorno
+.env
+# Ignorar carpetas
+venv/
+.venv/
+__pycache__/
+REPORTE INSTITUCIONAL_2/
+Adenda_F4_Emision_Reportes_Institucionales_EBR_JEC_2026.docx
+.pytest_cache
