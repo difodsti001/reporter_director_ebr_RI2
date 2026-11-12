@@ -187,22 +187,26 @@ TIPO_REPORTE = "RI2"
 CARGOS_DOCENTE = ("DOCENTE", "JERARQUICO")
 # Solo el directivo puede ver el reporte institucional (base_ebr_IA.cargo).
 CARGO_DIRECTIVO = "DIRECTIVO"
-# Solo participan en el programa los docentes que aprobaron el Curso 2
-# (base_ebr_IA.estado_c2). Es la definición de "docente activo" (N) del RI2:
-# la base no tiene un campo de retirados/bajas.
-ESTADO_C2_APROBADO = "APROBADO"
+# Solo participan en el programa los docentes que aprobaron el Curso 1
+# (base_ebr_IA.estado_c1): quienes cursan el Curso 2. Es la definición de
+# "docente activo" (N) del RI2; la base no tiene un campo de retirados/bajas.
+# Los docentes que no aprobaron el Curso 1 quedan fuera de N y solo se
+# informan como dato de cobertura (n_no_aprobaron_c1).
+ESTADO_C1_APROBADO = "APROBADO"
 
 NIVELES_EDUCATIVOS = ("Inicial", "Primaria", "Secundaria")
 NIVELES_RUBRICA = ("inicio", "en_desarrollo", "logrado", "destacado")
 NIVELES_FAVORABLES = ("logrado", "destacado")
 
-# Mínimo de comparaciones válidas para no entrar en COB_CONFIDENCIAL
-# (adenda RE-05).
+# Mínimo de comparaciones válidas (y de docentes en N) para no entrar en
+# COB_CONFIDENCIAL (adenda RE-05), y tamaño mínimo de un grupo (nivel
+# educativo) para mostrar su desglose.
 UMBRAL_MUESTRA_INSUFICIENTE = 5
+UMBRAL_GRUPO_MINIMO_NIVEL = 5
 
 # Versión lógica del cálculo/estructura del reporte guardado en la caché: si
 # cambia, los reportes guardados con otra versión se regeneran.
-VERSION_CALCULO = 6
+VERSION_CALCULO = 8
 
 # Adenda F4-ADENDA-EMISION-RI-EBRJEC26 v1.0, sección 4.
 # (N mínimo, N máximo inclusive o None=sin techo, código de banda, % exigido)
@@ -218,27 +222,24 @@ BANDAS_COBERTURA = (
 def _clasificar_cobertura(n_evidencias_validas: int, n_docentes_activos: int) -> dict:
     """Clasifica la cobertura de una IE. Para RI2, n_evidencias_validas es el
     número de comparaciones V1->V2 válidas y n_docentes_activos (N) es el
-    universo: los docentes que aprobaron el Curso 2.
+    universo: los docentes que aprobaron el Curso 1.
 
     Retorna {"banda_aplicada", "umbral_requerido", "umbral_alcanzado",
     "estado_cobertura"}.
 
-    N < 5 (banda B0): no hay banda numérica. Si TODOS los docentes del
-    universo tienen comparación válida (cobertura de 100 %) el reporte se
-    genera completo (COB_SUFICIENTE; la muestra reducida se advierte aparte);
-    si falta alguno, solo se emite el estado de cobertura (COB_CONFIDENCIAL).
+    N < 5 (banda B0): no hay banda numérica y el estado es SIEMPRE
+    COB_CONFIDENCIAL, aunque todos tengan comparación válida (adenda RE-05).
 
     N >= 5: umbral_requerido = máx(5; ⌈% de la banda × N⌉) (adenda RE-02,
     redondeo hacia arriba). Con menos de 5 comparaciones válidas,
     COB_CONFIDENCIAL; entre 5 y el umbral, COB_BAJO_UMBRAL (reporte con
     advertencia de cobertura); desde el umbral, COB_SUFICIENTE."""
-    if n_docentes_activos < 5:
-        alcanzado = n_docentes_activos >= 1 and n_evidencias_validas >= n_docentes_activos
+    if n_docentes_activos < UMBRAL_MUESTRA_INSUFICIENTE:
         return {
             "banda_aplicada": "B0",
-            "umbral_requerido": n_docentes_activos if n_docentes_activos >= 1 else None,
-            "umbral_alcanzado": alcanzado,
-            "estado_cobertura": "COB_SUFICIENTE" if alcanzado else "COB_CONFIDENCIAL",
+            "umbral_requerido": None,
+            "umbral_alcanzado": False,
+            "estado_cobertura": "COB_CONFIDENCIAL",
         }
 
     banda_aplicada, umbral_requerido = "B0", UMBRAL_MUESTRA_INSUFICIENTE
@@ -483,16 +484,16 @@ def _normalizar_nivel(valor: Optional[str]) -> Optional[str]:
 
 
 async def obtener_docentes_activos(ie: dict) -> tuple[dict[int, Optional[str]], int]:
-    """Docentes de la IE separados por estado_c2.
+    """Docentes de la IE separados por estado_c1.
 
-    Retorna ({userid: nivel_educativo} de los que aprobaron el Curso 2
-    ('APROBADO'), n_no_aprobaron_c2). Los aprobados son N
+    Retorna ({userid: nivel_educativo} de los que aprobaron el Curso 1
+    ('APROBADO'), n_no_aprobaron_c1). Los aprobados son N
     (n_docentes_activos): el universo de cálculo del reporte y de donde se
     toman las evidencias V1 y V2. Los no aprobados no se evalúan; solo se
     informan como dato de cobertura."""
     filtro, params = _filtro_ie_sql(ie)
     query = f"""
-        SELECT DISTINCT userid, nivel_educativo, UPPER(TRIM(estado_c2)) AS estado_c2
+        SELECT DISTINCT userid, nivel_educativo, UPPER(TRIM(estado_c1)) AS estado_c1
         FROM public."base_ebr_IA"
         WHERE {filtro}
           AND UPPER(TRIM(cargo)) = ANY(%(cargos)s)
@@ -504,7 +505,7 @@ async def obtener_docentes_activos(ie: dict) -> tuple[dict[int, Optional[str]], 
     no_aprobados: set[int] = set()
     for r in rows:
         uid = int(r["userid"])
-        if r["estado_c2"] == ESTADO_C2_APROBADO:
+        if r["estado_c1"] == ESTADO_C1_APROBADO:
             # Si un userid figurara dos veces con niveles distintos, se
             # conserva el primero no nulo.
             if aprobados.get(uid) is None:
@@ -602,7 +603,7 @@ def seleccionar_evidencia_por_version(filas: list[dict]) -> dict[int, dict[str, 
 
 
 def clasificar_comparaciones(docentes: dict[int, Optional[str]], evidencias: dict[int, dict[str, dict]],
-                             n_no_aprobaron_c2: int = 0) -> dict:
+                             n_no_aprobaron_c1: int = 0) -> dict:
     """Clasifica a cada docente activo según el estado de su comparación:
 
       valida             V1 y V2 exitosas y completas -> entra a los cálculos.
@@ -611,7 +612,8 @@ def clasificar_comparaciones(docentes: dict[int, Optional[str]], evidencias: dic
                          corresponde al producto) -> solo cobertura.
       sin_entrega_v2     sin V2 al corte (sin fila, 'failed', en curso).
 
-    Los cuatro grupos suman n_docentes_activos."""
+    Los cuatro grupos suman n_docentes_activos (los que no aprobaron el
+    Curso 1 no están en N: solo se informan en n_no_aprobaron_c1)."""
     comparaciones = []
     n_sin_ref = n_no_validas = n_sin_entrega = 0
 
@@ -637,7 +639,7 @@ def clasificar_comparaciones(docentes: dict[int, Optional[str]], evidencias: dic
     return {
         "comparaciones": comparaciones,
         "n_docentes_activos": len(docentes),
-        "n_no_aprobaron_c2": n_no_aprobaron_c2,
+        "n_no_aprobaron_c1": n_no_aprobaron_c1,
         "n_comparaciones_validas": len(comparaciones),
         "n_sin_referencia_v1": n_sin_ref,
         "n_no_validas": n_no_validas,
@@ -647,15 +649,15 @@ def clasificar_comparaciones(docentes: dict[int, Optional[str]], evidencias: dic
 
 async def calcular_estado_ie(ie: dict) -> dict:
     """Pipeline de datos: docentes activos -> filas V1/V2 -> comparaciones."""
-    docentes, n_no_aprobaron_c2 = await obtener_docentes_activos(ie)
+    docentes, n_no_aprobaron_c1 = await obtener_docentes_activos(ie)
     filas = await obtener_filas_vista(list(docentes))
     evidencias = seleccionar_evidencia_por_version(filas)
-    estado = clasificar_comparaciones(docentes, evidencias, n_no_aprobaron_c2)
+    estado = clasificar_comparaciones(docentes, evidencias, n_no_aprobaron_c1)
     log.info(
         "estado_ie_calculado",
         clave_ie=ie["clave_ie"],
         n_docentes_activos=estado["n_docentes_activos"],
-        n_no_aprobaron_c2=estado["n_no_aprobaron_c2"],
+        n_no_aprobaron_c1=estado["n_no_aprobaron_c1"],
         n_comparaciones_validas=estado["n_comparaciones_validas"],
         n_sin_referencia_v1=estado["n_sin_referencia_v1"],
         n_no_validas=estado["n_no_validas"],
@@ -739,27 +741,26 @@ def calcular_avance_por_criterio(comparaciones: list[dict]) -> list[dict]:
 
 def calcular_lectura_por_nivel(comparaciones: list[dict]) -> dict:
     """Sección 7: avance por aspecto dentro de cada nivel educativo, en el
-    orden fijo Inicial, Primaria, Secundaria y sin rankings. Se muestran
-    todos los niveles con al menos una comparación válida, sin importar el
-    tamaño del grupo (el reporte lo ve únicamente el directivo y se muestra
-    el n de cada nivel). Los docentes sin nivel registrado no entran en
-    esta sección (sí en el resto del reporte)."""
+    orden fijo Inicial, Primaria, Secundaria y sin rankings. Un nivel solo se
+    muestra si tiene al menos UMBRAL_GRUPO_MINIMO_NIVEL comparaciones válidas:
+    con menos casos se podría inferir el resultado de un docente. Los
+    docentes sin nivel registrado no entran en esta sección (sí en el resto
+    del reporte). Retorna también si algún nivel quedó sin mostrar."""
     por_nivel: dict[str, list[dict]] = {}
     for cmp_ in comparaciones:
         if cmp_["nivel_educativo"] in NIVELES_EDUCATIVOS:
             por_nivel.setdefault(cmp_["nivel_educativo"], []).append(cmp_)
 
-    return {
-        "niveles": [
-            {
-                "nivel_educativo": nivel,
-                "n": len(por_nivel[nivel]),
-                "avance_por_aspecto": calcular_avance_por_criterio(por_nivel[nivel]),
-            }
-            for nivel in NIVELES_EDUCATIVOS
-            if nivel in por_nivel
-        ],
-    }
+    niveles = [
+        {
+            "nivel_educativo": nivel,
+            "n": len(por_nivel[nivel]),
+            "avance_por_aspecto": calcular_avance_por_criterio(por_nivel[nivel]),
+        }
+        for nivel in NIVELES_EDUCATIVOS
+        if len(por_nivel.get(nivel, [])) >= UMBRAL_GRUPO_MINIMO_NIVEL
+    ]
+    return {"niveles": niveles, "hay_niveles_no_mostrados": len(niveles) < len(por_nivel)}
 
 
 # -----------------------------------------------------------------------------
@@ -1236,7 +1237,7 @@ def _campos_cobertura(estado: dict, clasificacion: dict) -> dict:
     n, total = estado["n_comparaciones_validas"], estado["n_docentes_activos"]
     return {
         "n_docentes_activos": total,
-        "n_no_aprobaron_c2": estado.get("n_no_aprobaron_c2", 0),
+        "n_no_aprobaron_c1": estado.get("n_no_aprobaron_c1", 0),
         "n_comparaciones_validas": n,
         "n_sin_referencia_v1": estado["n_sin_referencia_v1"],
         "n_no_validas": estado["n_no_validas"],
@@ -1315,9 +1316,8 @@ async def generar_reporte(ie: dict, estado: dict) -> dict:
     narrativas = await redactar_narrativas(variables)
 
     distribucion_visible = [{**c, "nombre": _nombre_criterio(c["criterio_id"])} for c in distribucion]
-    # Adenda 8.2: solo en COB_BAJO_UMBRAL se omite la lectura por nivel. Con
-    # cobertura completa o suficiente se evalúa siempre, aunque un nivel
-    # tenga una sola comparación.
+    # Adenda 8.2: en COB_BAJO_UMBRAL se omite la lectura por nivel. En los
+    # demás casos se evalúa, y los niveles con menos de 5 casos se suprimen.
     lectura_por_nivel = (
         None if estado_cob == "COB_BAJO_UMBRAL" else calcular_lectura_por_nivel(comparaciones)
     )
@@ -1440,7 +1440,7 @@ def _reporte_vigente(guardado: Optional[dict], estado: dict) -> bool:
         and guardado["reporte_json"].get("estado_cobertura") == esperado["estado_cobertura"]
         and guardado["n_docentes_evaluados"] == estado["n_comparaciones_validas"]
         and guardado["reporte_json"].get("n_docentes_activos") == estado["n_docentes_activos"]
-        and guardado["reporte_json"].get("n_no_aprobaron_c2") == estado.get("n_no_aprobaron_c2", 0)
+        and guardado["reporte_json"].get("n_no_aprobaron_c1") == estado.get("n_no_aprobaron_c1", 0)
     )
 
 
@@ -1451,12 +1451,12 @@ async def consultar_reporte_existente(userid: int) -> dict:
     None, + campos de cobertura}:
 
       - Hay reporte vigente -> accion="mostrar".
+      - Estado confidencial (N < 5 o menos de 5 comparaciones válidas) ->
+        accion="mostrar" con solo el estado de cobertura.
       - No hay reporte, o cambiaron las comparaciones válidas / N ->
-        accion="generar" (el frontend llama a POST /reporte_ri2/generar).
-
-    A diferencia de RI1, no se "espera" a que haya más docentes: con la
-    adenda el reporte se emite siempre (regular, bajo umbral o solo estado
-    de cobertura), según estado_cobertura.
+        accion="generar": el frontend muestra el estado de cobertura y, solo
+        cuando el directivo pulsa "Solicitar Reporte Institucional" (adenda
+        RE-01), llama a POST /reporte_ri2/generar.
     """
     inicio = time.monotonic()
     log.info("reporte_consultado", userid=userid)
@@ -1466,9 +1466,17 @@ async def consultar_reporte_existente(userid: int) -> dict:
     guardado = await obtener_reporte_guardado(ie["clave_ie"])
     clasificacion = _clasificar_cobertura(estado["n_comparaciones_validas"], estado["n_docentes_activos"])
 
+    n_validas, n_activos = estado["n_comparaciones_validas"], estado["n_docentes_activos"]
     campos = {
-        "n_comparaciones_validas": estado["n_comparaciones_validas"],
-        "n_docentes_activos": estado["n_docentes_activos"],
+        "nombre_ie": ie["nombre_ie"],
+        "n_comparaciones_validas": n_validas,
+        "n_docentes_activos": n_activos,
+        "n_no_aprobaron_c1": estado["n_no_aprobaron_c1"],
+        "n_sin_referencia_v1": estado["n_sin_referencia_v1"],
+        "n_no_validas": estado["n_no_validas"],
+        "n_sin_entrega_v2": estado["n_sin_entrega_v2"],
+        "pct_cobertura": round(100 * n_validas / n_activos, 1) if n_activos else 0.0,
+        "minimo_comparaciones": UMBRAL_MUESTRA_INSUFICIENTE,
         **clasificacion,
     }
     duracion_ms = round((time.monotonic() - inicio) * 1000)
@@ -1476,6 +1484,12 @@ async def consultar_reporte_existente(userid: int) -> dict:
     if _reporte_vigente(guardado, estado):
         log.info("consulta_mostrar_vigente", clave_ie=ie["clave_ie"], duracion_ms=duracion_ms)
         return {"accion": "mostrar", "reporte": guardado["reporte_json"], **campos}
+
+    if clasificacion["estado_cobertura"] == "COB_CONFIDENCIAL":
+        # Solo se emite el estado de cobertura: no hay contenido que generar
+        # ni LLM, así que no hace falta confirmación ni guardar nada.
+        log.info("consulta_confidencial", clave_ie=ie["clave_ie"], duracion_ms=duracion_ms)
+        return {"accion": "mostrar", "reporte": await generar_reporte(ie, estado), **campos}
 
     log.info(
         "consulta_debe_generar",
@@ -1490,7 +1504,7 @@ async def obtener_o_generar_reporte(userid: int, courseid: int, cmid: int) -> di
     """
     POST /reporte_ri2/generar -- pipeline completo:
       1. Resuelve la IE del directivo (cod_institucional o clave compuesta).
-      2. Calcula el estado actual (docentes aprobados del Curso 2, V1/V2).
+      2. Calcula el estado actual (docentes aprobados del Curso 1, V1/V2).
       3. Si el reporte guardado sigue vigente, lo sirve; si no, genera uno
          nuevo (con LLM salvo COB_CONFIDENCIAL) y lo guarda.
       4. Registra la asociación directivo-reporte (courseid/cmid:

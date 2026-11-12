@@ -593,6 +593,15 @@
     </section>
 
 
+    <!-- Solicitud del reporte (adenda RE-01): se muestra el estado de cobertura
+         y el reporte se genera solo cuando el directivo lo solicita -->
+    <section id="solicitud" class="state-card" hidden>
+      <h2>Solicitar Reporte Institucional</h2>
+      <p id="solicitud-texto"></p>
+      <div id="solicitud-detalle"></div>
+      <button id="btn-solicitar" class="btn-primary">Solicitar Reporte Institucional</button>
+    </section>
+
     <main id="report-content" hidden>
       <div class="report-actions">
         <button id="btn-descargar-pdf" class="btn-secondary btn-descargar-pdf">
@@ -657,6 +666,10 @@ const el = {
   emptyFirstTimeTitle: document.getElementById("empty-first-time-title"),
   emptyFirstTimeText: document.getElementById("empty-first-time-text"),
   btnGenerarPrimero: document.getElementById("btn-generar-primero"),
+  solicitud: document.getElementById("solicitud"),
+  solicitudTexto: document.getElementById("solicitud-texto"),
+  solicitudDetalle: document.getElementById("solicitud-detalle"),
+  btnSolicitar: document.getElementById("btn-solicitar"),
   statusBanner: document.getElementById("status-banner"),
   loading: document.getElementById("loading"),
   reportContent: document.getElementById("report-content"),
@@ -720,7 +733,7 @@ async function handleResponse(res) {
  * UI state helpers
  * ------------------------------------------------------------------- */
 function showOnly(...visibleIds) {
-  const all = ["access-error", "empty-first-time", "report-content"];
+  const all = ["access-error", "empty-first-time", "solicitud", "report-content"];
   for (const id of all) {
     document.getElementById(id).hidden = !visibleIds.includes(id);
   }
@@ -766,8 +779,9 @@ async function init() {
     }
 
     // data.accion === "generar": no hay reporte vigente (o cambiaron las
-    // comparaciones V1→V2 válidas), se dispara la generación automáticamente.
-    await generarReporte();
+    // comparaciones V1→V2 válidas). El reporte solo se genera cuando el
+    // directivo lo solicita (adenda RE-01), tras ver su estado de cobertura.
+    mostrarSolicitud(data);
   } catch (err) {
     setLoading(false);
 
@@ -803,9 +817,58 @@ function showBlockedState({ title, text, allowRetry }) {
   el.btnGenerarPrimero.hidden = !allowRetry;
 }
 
-/* Genera el reporte automáticamente (primera vez, o como reintento tras
- * un error). El directivo nunca tiene que pedirlo explícitamente salvo
- * que algo haya fallado. */
+/* Pantalla previa a la solicitud: estado de cobertura actual de la
+ * institución (adenda RE-01). Los datos vienen de /reporte_ri2/consultar. */
+function mostrarSolicitud(data) {
+  el.contextName.textContent = data.nombre_ie || "—";
+  el.solicitudTexto.textContent =
+    "Antes de generar el reporte, este es el estado de cobertura actual de su institución. " +
+    "El reporte se genera únicamente cuando usted lo solicita.";
+
+  const statRow = document.createElement("div");
+  statRow.className = "stat-row";
+  statRow.appendChild(statTile("Docentes participantes", data.n_docentes_activos ?? "—"));
+  statRow.appendChild(statTile("Comparaciones V1→V2 válidas", data.n_comparaciones_validas ?? "—"));
+  const minimo = data.minimo_comparaciones ?? 5;
+  statRow.appendChild(statTile("Mínimo de comparaciones para un reporte", minimo, { small: true }));
+  if (data.umbral_requerido != null) {
+    statRow.appendChild(statTile("Comparaciones para cobertura suficiente", data.umbral_requerido, { small: true }));
+  }
+  statRow.appendChild(statTile("Cobertura comparativa", fmtPct(data.pct_cobertura ?? 0), { badge: badgeCobertura(data) }));
+
+  const ul = document.createElement("ul");
+  ul.className = "bullet-list";
+  ul.style.marginTop = "10px";
+  addBullet(ul, `${data.n_no_aprobaron_c1 ?? 0} docente(s) sin comparación por no haber aprobado el Curso 1.`);
+  addBullet(ul, `${data.n_sin_referencia_v1 ?? 0} docente(s) sin una Sesión V1 válida de referencia.`);
+  addBullet(ul, `${data.n_no_validas ?? 0} docente(s) con una Sesión V2 no válida.`);
+  addBullet(ul, `${data.n_sin_entrega_v2 ?? 0} docente(s) sin Sesión V2 disponible al corte.`);
+
+  const nodos = [statRow];
+  // Con el mínimo ya se puede generar el reporte, pero para que represente
+  // a la institución se necesita el umbral de su banda.
+  if (data.umbral_requerido != null && (data.n_comparaciones_validas ?? 0) < data.umbral_requerido) {
+    const aviso = document.createElement("p");
+    aviso.className = "empty-note";
+    aviso.textContent =
+      `Con ${data.n_comparaciones_validas} comparaciones válidas ya se puede generar el reporte, pero todavía no ` +
+      `representa a toda la institución: para una cobertura suficiente se necesitan al menos ${data.umbral_requerido} ` +
+      `(faltan ${data.umbral_requerido - data.n_comparaciones_validas}). Mientras tanto, el reporte incluirá una ` +
+      "advertencia de cobertura y sus hallazgos deberán tratarse como hipótesis.";
+    nodos.push(aviso);
+  }
+  nodos.push(ul);
+
+  el.solicitudDetalle.replaceChildren(...nodos);
+  showOnly("solicitud");
+}
+
+el.btnSolicitar.addEventListener("click", () => {
+  generarReporte();
+});
+
+/* Genera el reporte cuando el directivo lo solicita (botón "Solicitar
+ * Reporte Institucional") o como reintento tras un error. */
 async function generarReporte() {
   if (!CTX.courseid || !CTX.cmid) {
     el.contextName.textContent = "Reporte no disponible";
@@ -854,7 +917,15 @@ async function checkForUpdates(currentData) {
   el.refreshStatus.textContent = "Revisando actualizaciones…";
   el.btnRefresh.classList.add("spinning");
   try {
-    const fresh = await apiGenerar(CTX.userid, CTX.courseid, CTX.cmid);
+    const consulta = await apiConsultar(CTX.userid);
+    if (consulta.accion !== "mostrar") {
+      // Cambió la información (comparaciones o N): el directivo debe
+      // solicitar un reporte nuevo.
+      el.refreshStatus.hidden = true;
+      mostrarSolicitud(consulta);
+      return;
+    }
+    const fresh = consulta.reporte;
     if (fresh.fecha_generacion !== currentData.fecha_generacion) {
       render(fresh);
       el.refreshStatus.textContent = "Reporte actualizado con nueva información.";
@@ -1036,10 +1107,6 @@ function renderEncabezado(data) {
   statRow.className = "stat-row";
 
   statRow.appendChild(statTile("Docentes participantes", data.n_docentes_activos ?? "—"));
-  // Docentes que no aprobaron el Curso 2: no forman parte del universo de
-  // análisis (solo participan quienes lo aprobaron). Es un conteo de
-  // cobertura, no un resultado, por eso se muestra también en COB_CONFIDENCIAL.
-  statRow.appendChild(statTile("No aprobaron el Curso 2", data.n_no_aprobaron_c2 ?? 0, { small: true }));
   statRow.appendChild(statTile("Comparaciones V1→V2 válidas", data.n_comparaciones_validas ?? "—"));
 
   // En COB_CONFIDENCIAL no se muestra ningún porcentaje (adenda 6 y 13).
@@ -1073,12 +1140,20 @@ function renderConfidencial(data) {
   const detalle = document.createElement("ul");
   detalle.className = "bullet-list";
   detalle.style.marginTop = "10px";
-  addBullet(detalle, `Docentes que no aprobaron el Curso 2 y no forman parte del análisis: ${data.n_no_aprobaron_c2 ?? 0}.`);
-  addBullet(detalle, `Comparaciones V1→V2 válidas: ${data.n_comparaciones_validas ?? 0}.`);
+  const n = data.n_comparaciones_validas ?? 0;
+  addBullet(detalle, `Docentes participantes: ${data.n_docentes_activos ?? 0}.`);
+  addBullet(detalle, `Comparaciones V1→V2 válidas: ${n}.`);
+  addBullet(detalle, `Docentes sin comparación por no haber aprobado el Curso 1: ${data.n_no_aprobaron_c1 ?? 0}.`);
   addBullet(detalle, `Evidencias V2 no válidas: ${data.n_no_validas ?? 0}.`);
   addBullet(detalle, `Docentes sin Sesión V2 al corte: ${data.n_sin_entrega_v2 ?? 0}.`);
-  if (data.umbral_requerido != null) {
-    addBullet(detalle, `Comparaciones válidas requeridas para representar a la institución: ${data.umbral_requerido}.`);
+  const minimo = data.minimo_comparaciones ?? 5;
+  if ((data.n_docentes_activos ?? 0) < minimo) {
+    addBullet(detalle, `La institución tiene menos de ${minimo} docentes participantes.`);
+  } else {
+    addBullet(detalle, `Mínimo de comparaciones válidas para emitir un reporte: ${minimo} (faltan ${Math.max(minimo - n, 0)}).`);
+    if (data.umbral_requerido != null) {
+      addBullet(detalle, `Comparaciones válidas para una cobertura suficiente: ${data.umbral_requerido}.`);
+    }
   }
   section.appendChild(detalle);
   return section;
@@ -1302,7 +1377,13 @@ function renderLecturaPorNivel(data) {
   const niveles = lectura.niveles || [];
 
   if (!niveles.length) {
-    emptyNote(section, "No se dispone de información de nivel educativo para esta lectura.");
+    emptyNote(
+      section,
+      lectura.hay_niveles_no_mostrados
+        ? "No se muestra una lectura por nivel educativo porque los grupos son muy pequeños y el desglose podría " +
+          "permitir inferir resultados individuales."
+        : "No se dispone de información de nivel educativo para esta lectura."
+    );
     return section;
   }
   for (const nivel of niveles) {
@@ -1310,6 +1391,9 @@ function renderLecturaPorNivel(data) {
     h3.textContent = `${nivel.nivel_educativo} (${nivel.n} comparaciones válidas)`;
     section.appendChild(h3);
     tablaAvance(section, nivel.avance_por_aspecto || []);
+  }
+  if (lectura.hay_niveles_no_mostrados) {
+    notaPie(section, "Algunos niveles no se muestran porque sus grupos son muy pequeños y podrían permitir inferir resultados individuales.");
   }
   notaPie(section, "Esta lectura no establece rankings ni comparaciones de calidad entre niveles educativos.");
   return section;
@@ -1378,7 +1462,7 @@ function renderCobertura(data) {
   const ul = document.createElement("ul");
   ul.className = "bullet-list";
   ul.style.marginTop = "10px";
-  addBullet(ul, `${data.n_no_aprobaron_c2 ?? 0} docente(s) no aprobaron el Curso 2; el análisis considera únicamente a quienes lo aprobaron.`);
+  addBullet(ul, `${data.n_no_aprobaron_c1 ?? 0} docente(s) no cuentan con comparación por no haber aprobado el Curso 1; el análisis considera únicamente a quienes lo aprobaron.`);
   addBullet(ul, `${data.n_sin_referencia_v1 ?? 0} docente(s) no forman parte del análisis por no contar con una Sesión V1 válida de referencia.`);
   addBullet(ul, `${data.n_no_validas ?? 0} docente(s) con una Sesión V2 no válida.`);
   addBullet(ul, `${data.n_sin_entrega_v2 ?? 0} docente(s) sin Sesión V2 disponible al corte.`);
