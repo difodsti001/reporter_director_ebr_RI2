@@ -190,9 +190,11 @@ CARGO_DIRECTIVO = "DIRECTIVO"
 # Solo participan en el programa los docentes que aprobaron el Curso 1
 # (base_ebr_IA.estado_c1): quienes cursan el Curso 2. Es la definición de
 # "docente activo" (N) del RI2; la base no tiene un campo de retirados/bajas.
-# Los docentes que no aprobaron el Curso 1 quedan fuera de N y solo se
-# informan como dato de cobertura (n_no_aprobaron_c1).
+# La aprobación del Curso 2 (estado_c2) NO excluye a nadie de N: solo explica
+# por qué un docente no tiene comparación válida (se informa como categoría
+# aparte en la cobertura, sin restarlo de la población de referencia).
 ESTADO_C1_APROBADO = "APROBADO"
+ESTADO_C2_APROBADO = "APROBADO"
 
 NIVELES_EDUCATIVOS = ("Inicial", "Primaria", "Secundaria")
 NIVELES_RUBRICA = ("inicio", "en_desarrollo", "logrado", "destacado")
@@ -206,7 +208,7 @@ UMBRAL_GRUPO_MINIMO_NIVEL = 5
 
 # Versión lógica del cálculo/estructura del reporte guardado en la caché: si
 # cambia, los reportes guardados con otra versión se regeneran.
-VERSION_CALCULO = 8
+VERSION_CALCULO = 9
 
 # Adenda F4-ADENDA-EMISION-RI-EBRJEC26 v1.0, sección 4.
 # (N mínimo, N máximo inclusive o None=sin techo, código de banda, % exigido)
@@ -483,17 +485,18 @@ def _normalizar_nivel(valor: Optional[str]) -> Optional[str]:
     return None
 
 
-async def obtener_docentes_activos(ie: dict) -> tuple[dict[int, Optional[str]], int]:
-    """Docentes de la IE separados por estado_c1.
+async def obtener_docentes_activos(ie: dict) -> tuple[dict[int, Optional[str]], set[int]]:
+    """Docentes activos de la IE: los que aprobaron el Curso 1 (estado_c1).
 
-    Retorna ({userid: nivel_educativo} de los que aprobaron el Curso 1
-    ('APROBADO'), n_no_aprobaron_c1). Los aprobados son N
-    (n_docentes_activos): el universo de cálculo del reporte y de donde se
-    toman las evidencias V1 y V2. Los no aprobados no se evalúan; solo se
-    informan como dato de cobertura."""
+    Retorna ({userid: nivel_educativo}, {userid de los que NO aprobaron el
+    Curso 2}). El primer dict es N (n_docentes_activos): el universo de
+    cálculo y de donde se toman las evidencias V1 y V2. El conjunto es solo
+    informativo: esos docentes siguen dentro de N, y si no tienen comparación
+    válida se informan como "no aprobó el Curso 2"."""
     filtro, params = _filtro_ie_sql(ie)
     query = f"""
-        SELECT DISTINCT userid, nivel_educativo, UPPER(TRIM(estado_c1)) AS estado_c1
+        SELECT DISTINCT userid, nivel_educativo,
+               UPPER(TRIM(estado_c1)) AS estado_c1, UPPER(TRIM(estado_c2)) AS estado_c2
         FROM public."base_ebr_IA"
         WHERE {filtro}
           AND UPPER(TRIM(cargo)) = ANY(%(cargos)s)
@@ -501,20 +504,19 @@ async def obtener_docentes_activos(ie: dict) -> tuple[dict[int, Optional[str]], 
     async with pool_datos.connection() as conn:
         rows = await (await conn.execute(query, {**params, "cargos": list(CARGOS_DOCENTE)})).fetchall()
 
-    aprobados: dict[int, Optional[str]] = {}
-    no_aprobados: set[int] = set()
+    activos: dict[int, Optional[str]] = {}
+    c2_aprobado: set[int] = set()
     for r in rows:
+        if r["estado_c1"] != ESTADO_C1_APROBADO:
+            continue
         uid = int(r["userid"])
-        if r["estado_c1"] == ESTADO_C1_APROBADO:
-            # Si un userid figurara dos veces con niveles distintos, se
-            # conserva el primero no nulo.
-            if aprobados.get(uid) is None:
-                aprobados[uid] = _normalizar_nivel(r["nivel_educativo"])
-        else:
-            no_aprobados.add(uid)
-    # Un userid con registros APROBADO y no aprobado cuenta como aprobado.
-    no_aprobados -= aprobados.keys()
-    return aprobados, len(no_aprobados)
+        # Si un userid figurara dos veces con niveles distintos, se
+        # conserva el primero no nulo.
+        if activos.get(uid) is None:
+            activos[uid] = _normalizar_nivel(r["nivel_educativo"])
+        if r["estado_c2"] == ESTADO_C2_APROBADO:
+            c2_aprobado.add(uid)
+    return activos, set(activos) - c2_aprobado
 
 
 # La vista en producción devuelve "en_proceso" aunque el resto del pipeline
@@ -603,19 +605,22 @@ def seleccionar_evidencia_por_version(filas: list[dict]) -> dict[int, dict[str, 
 
 
 def clasificar_comparaciones(docentes: dict[int, Optional[str]], evidencias: dict[int, dict[str, dict]],
-                             n_no_aprobaron_c1: int = 0) -> dict:
+                             no_aprobaron_c2: Optional[set[int]] = None) -> dict:
     """Clasifica a cada docente activo según el estado de su comparación:
 
       valida             V1 y V2 exitosas y completas -> entra a los cálculos.
       sin_referencia_v1  V2 exitosa pero sin V1 válida -> solo cobertura.
       no_valida          V2 con validation_failed (el documento no
                          corresponde al producto) -> solo cobertura.
-      sin_entrega_v2     sin V2 al corte (sin fila, 'failed', en curso).
+      no_aprobo_c2       sin V2 al corte y sin haber aprobado el Curso 2 ->
+                         solo cobertura (sigue contando en N).
+      sin_entrega_v2     sin V2 al corte (sin fila, 'failed', en curso) pero
+                         con el Curso 2 aprobado.
 
-    Los cuatro grupos suman n_docentes_activos (los que no aprobaron el
-    Curso 1 no están en N: solo se informan en n_no_aprobaron_c1)."""
+    Los cinco grupos suman n_docentes_activos."""
+    no_aprobaron_c2 = no_aprobaron_c2 or set()
     comparaciones = []
-    n_sin_ref = n_no_validas = n_sin_entrega = 0
+    n_sin_ref = n_no_validas = n_sin_entrega = n_no_aprobo_c2 = 0
 
     for uid, nivel_educativo in docentes.items():
         ev = evidencias.get(uid, {})
@@ -633,13 +638,15 @@ def clasificar_comparaciones(docentes: dict[int, Optional[str]], evidencias: dic
                 })
             else:
                 n_sin_ref += 1
+        elif uid in no_aprobaron_c2:
+            n_no_aprobo_c2 += 1
         else:
             n_sin_entrega += 1
 
     return {
         "comparaciones": comparaciones,
         "n_docentes_activos": len(docentes),
-        "n_no_aprobaron_c1": n_no_aprobaron_c1,
+        "n_no_aprobaron_c2": n_no_aprobo_c2,
         "n_comparaciones_validas": len(comparaciones),
         "n_sin_referencia_v1": n_sin_ref,
         "n_no_validas": n_no_validas,
@@ -649,15 +656,15 @@ def clasificar_comparaciones(docentes: dict[int, Optional[str]], evidencias: dic
 
 async def calcular_estado_ie(ie: dict) -> dict:
     """Pipeline de datos: docentes activos -> filas V1/V2 -> comparaciones."""
-    docentes, n_no_aprobaron_c1 = await obtener_docentes_activos(ie)
+    docentes, no_aprobaron_c2 = await obtener_docentes_activos(ie)
     filas = await obtener_filas_vista(list(docentes))
     evidencias = seleccionar_evidencia_por_version(filas)
-    estado = clasificar_comparaciones(docentes, evidencias, n_no_aprobaron_c1)
+    estado = clasificar_comparaciones(docentes, evidencias, no_aprobaron_c2)
     log.info(
         "estado_ie_calculado",
         clave_ie=ie["clave_ie"],
         n_docentes_activos=estado["n_docentes_activos"],
-        n_no_aprobaron_c1=estado["n_no_aprobaron_c1"],
+        n_no_aprobaron_c2=estado["n_no_aprobaron_c2"],
         n_comparaciones_validas=estado["n_comparaciones_validas"],
         n_sin_referencia_v1=estado["n_sin_referencia_v1"],
         n_no_validas=estado["n_no_validas"],
@@ -1237,7 +1244,7 @@ def _campos_cobertura(estado: dict, clasificacion: dict) -> dict:
     n, total = estado["n_comparaciones_validas"], estado["n_docentes_activos"]
     return {
         "n_docentes_activos": total,
-        "n_no_aprobaron_c1": estado.get("n_no_aprobaron_c1", 0),
+        "n_no_aprobaron_c2": estado.get("n_no_aprobaron_c2", 0),
         "n_comparaciones_validas": n,
         "n_sin_referencia_v1": estado["n_sin_referencia_v1"],
         "n_no_validas": estado["n_no_validas"],
@@ -1440,7 +1447,7 @@ def _reporte_vigente(guardado: Optional[dict], estado: dict) -> bool:
         and guardado["reporte_json"].get("estado_cobertura") == esperado["estado_cobertura"]
         and guardado["n_docentes_evaluados"] == estado["n_comparaciones_validas"]
         and guardado["reporte_json"].get("n_docentes_activos") == estado["n_docentes_activos"]
-        and guardado["reporte_json"].get("n_no_aprobaron_c1") == estado.get("n_no_aprobaron_c1", 0)
+        and guardado["reporte_json"].get("n_no_aprobaron_c2") == estado.get("n_no_aprobaron_c2", 0)
     )
 
 
@@ -1471,7 +1478,7 @@ async def consultar_reporte_existente(userid: int) -> dict:
         "nombre_ie": ie["nombre_ie"],
         "n_comparaciones_validas": n_validas,
         "n_docentes_activos": n_activos,
-        "n_no_aprobaron_c1": estado["n_no_aprobaron_c1"],
+        "n_no_aprobaron_c2": estado["n_no_aprobaron_c2"],
         "n_sin_referencia_v1": estado["n_sin_referencia_v1"],
         "n_no_validas": estado["n_no_validas"],
         "n_sin_entrega_v2": estado["n_sin_entrega_v2"],

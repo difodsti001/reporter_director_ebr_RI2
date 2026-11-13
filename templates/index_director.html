@@ -839,7 +839,7 @@ function mostrarSolicitud(data) {
   const ul = document.createElement("ul");
   ul.className = "bullet-list";
   ul.style.marginTop = "10px";
-  addBullet(ul, `${data.n_no_aprobaron_c1 ?? 0} docente(s) sin comparación por no haber aprobado el Curso 1.`);
+  addBullet(ul, `${data.n_no_aprobaron_c2 ?? 0} docente(s) sin Sesión V2 que no han aprobado el Curso 2.`);
   addBullet(ul, `${data.n_sin_referencia_v1 ?? 0} docente(s) sin una Sesión V1 válida de referencia.`);
   addBullet(ul, `${data.n_no_validas ?? 0} docente(s) con una Sesión V2 no válida.`);
   addBullet(ul, `${data.n_sin_entrega_v2 ?? 0} docente(s) sin Sesión V2 disponible al corte.`);
@@ -1143,7 +1143,7 @@ function renderConfidencial(data) {
   const n = data.n_comparaciones_validas ?? 0;
   addBullet(detalle, `Docentes participantes: ${data.n_docentes_activos ?? 0}.`);
   addBullet(detalle, `Comparaciones V1→V2 válidas: ${n}.`);
-  addBullet(detalle, `Docentes sin comparación por no haber aprobado el Curso 1: ${data.n_no_aprobaron_c1 ?? 0}.`);
+  addBullet(detalle, `Docentes sin Sesión V2 que no han aprobado el Curso 2: ${data.n_no_aprobaron_c2 ?? 0}.`);
   addBullet(detalle, `Evidencias V2 no válidas: ${data.n_no_validas ?? 0}.`);
   addBullet(detalle, `Docentes sin Sesión V2 al corte: ${data.n_sin_entrega_v2 ?? 0}.`);
   const minimo = data.minimo_comparaciones ?? 5;
@@ -1462,7 +1462,7 @@ function renderCobertura(data) {
   const ul = document.createElement("ul");
   ul.className = "bullet-list";
   ul.style.marginTop = "10px";
-  addBullet(ul, `${data.n_no_aprobaron_c1 ?? 0} docente(s) no cuentan con comparación por no haber aprobado el Curso 1; el análisis considera únicamente a quienes lo aprobaron.`);
+  addBullet(ul, `${data.n_no_aprobaron_c2 ?? 0} docente(s) sin Sesión V2 que no han aprobado el Curso 2 (siguen contando entre los docentes participantes).`);
   addBullet(ul, `${data.n_sin_referencia_v1 ?? 0} docente(s) no forman parte del análisis por no contar con una Sesión V1 válida de referencia.`);
   addBullet(ul, `${data.n_no_validas ?? 0} docente(s) con una Sesión V2 no válida.`);
   addBullet(ul, `${data.n_sin_entrega_v2 ?? 0} docente(s) sin Sesión V2 disponible al corte.`);

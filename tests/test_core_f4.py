@@ -43,16 +43,16 @@ def _filas_evidencia(uid, version, nivel, **kw):
     return [_fila(uid, version, c, nivel, **kw) for c in range(1, 6)]
 
 
-def _estado(comparaciones, n_docentes, sin_ref=0, no_validas=0, no_aprobaron_c1=0):
+def _estado(comparaciones, n_docentes, sin_ref=0, no_validas=0, no_aprobaron_c2=0):
     n = len(comparaciones)
     return {
         "comparaciones": comparaciones,
         "n_docentes_activos": n_docentes,
-        "n_no_aprobaron_c1": no_aprobaron_c1,
+        "n_no_aprobaron_c2": no_aprobaron_c2,
         "n_comparaciones_validas": n,
         "n_sin_referencia_v1": sin_ref,
         "n_no_validas": no_validas,
-        "n_sin_entrega_v2": n_docentes - n - sin_ref - no_validas,
+        "n_sin_entrega_v2": n_docentes - n - sin_ref - no_validas - no_aprobaron_c2,
     }
 
 
@@ -181,14 +181,17 @@ def test_clasificacion_de_comparaciones_suma_n_docentes():
     filas = [f for f in filas if not (f["user_id"] == 5 and f["criterion_index"] == 3)] + [_fila(5, "V2", 3, None)]  # V2 incompleta
     filas += _filas_evidencia(99, "V1", "logrado") + _filas_evidencia(99, "V2", "logrado")                # no es docente activo
 
-    est = core.clasificar_comparaciones(docentes, core.seleccionar_evidencia_por_version(filas), n_no_aprobaron_c1=7)
+    # 4 y 6 no aprobaron el Curso 2; el 1 tampoco, pero su comparación es válida y cuenta como tal
+    est = core.clasificar_comparaciones(docentes, core.seleccionar_evidencia_por_version(filas), no_aprobaron_c2={1, 4, 6})
 
-    assert est["n_docentes_activos"] == 6 and est["n_no_aprobaron_c1"] == 7   # los no aprobados no entran a la suma
+    assert est["n_docentes_activos"] == 6
     assert est["n_comparaciones_validas"] == 1 and est["comparaciones"][0]["user_id"] == 1
     assert est["n_sin_referencia_v1"] == 1
     assert est["n_no_validas"] == 1
-    assert est["n_sin_entrega_v2"] == 3      # failed + incompleta + sin ninguna fila (6)
-    assert (est["n_comparaciones_validas"] + est["n_sin_referencia_v1"] + est["n_no_validas"] + est["n_sin_entrega_v2"]) == 6
+    assert est["n_no_aprobaron_c2"] == 2     # V2 failed (4) y sin ninguna fila (6): siguen dentro de N
+    assert est["n_sin_entrega_v2"] == 1      # V2 incompleta (5), con el Curso 2 aprobado
+    assert (est["n_comparaciones_validas"] + est["n_sin_referencia_v1"] + est["n_no_validas"]
+            + est["n_no_aprobaron_c2"] + est["n_sin_entrega_v2"]) == 6
 
 
 def test_v2_valida_con_v1_fallida_es_sin_referencia():
@@ -334,10 +337,10 @@ def _comparaciones_sinteticas(n=20):
 
 
 def test_reporte_confidencial_no_expone_cifras_ni_llama_al_llm(llm_roto):
-    estado = _estado(_comparaciones_sinteticas(4), n_docentes=30, no_validas=1, no_aprobaron_c1=12)
+    estado = _estado(_comparaciones_sinteticas(4), n_docentes=30, no_validas=1, no_aprobaron_c2=12)
     r = _correr(core.generar_reporte(IE, estado))
     assert r["estado_cobertura"] == "COB_CONFIDENCIAL"
-    assert r["n_no_aprobaron_c1"] == 12     # conteo de cobertura: sí se informa
+    assert r["n_no_aprobaron_c2"] == 12     # conteo de cobertura: sí se informa
     assert "Su institución cuenta con 4 evidencias válidas de 30 docentes participantes" in r["texto_confidencial"]
     prohibidas = {"distribucion_v2_por_aspecto", "avance_por_aspecto", "pct_cobertura", "panorama_hallazgos",
                   "interpretaciones_por_aspecto", "lectura_por_nivel", "n_sin_referencia_v1", "enfasis_lectura"}
@@ -346,7 +349,7 @@ def test_reporte_confidencial_no_expone_cifras_ni_llama_al_llm(llm_roto):
 
 
 def test_menos_de_5_docentes_es_confidencial_aunque_todos_tengan_comparacion(llm_roto):
-    r = _correr(core.generar_reporte(IE, _estado(_comparaciones_sinteticas(4), n_docentes=4, no_aprobaron_c1=0)))
+    r = _correr(core.generar_reporte(IE, _estado(_comparaciones_sinteticas(4), n_docentes=4, no_aprobaron_c2=0)))
     assert r["estado_cobertura"] == "COB_CONFIDENCIAL" and r["banda_aplicada"] == "B0"
     assert "Su institución cuenta con 4 evidencias válidas de 4 docentes participantes" in r["texto_confidencial"]
     assert not ({"distribucion_v2_por_aspecto", "avance_por_aspecto", "lectura_por_nivel", "pct_cobertura"} & r.keys())
@@ -429,20 +432,20 @@ def test_el_reporte_no_incluye_nunca_datos_individuales(llm_ok):
 def test_reporte_vigente_solo_si_no_cambian_comparaciones_ni_N():
     estado = _estado(_comparaciones_sinteticas(10), n_docentes=40)
     guardado = {"estado": "generado", "n_docentes_evaluados": 10,
-                "reporte_json": {"n_docentes_activos": 40, "n_no_aprobaron_c1": 0, "estado_cobertura": "COB_BAJO_UMBRAL", "version_calculo": core.VERSION_CALCULO}}
+                "reporte_json": {"n_docentes_activos": 40, "n_no_aprobaron_c2": 0, "estado_cobertura": "COB_BAJO_UMBRAL", "version_calculo": core.VERSION_CALCULO}}
     assert core._reporte_vigente(guardado, estado)
     assert not core._reporte_vigente(None, estado)
     assert not core._reporte_vigente({**guardado, "n_docentes_evaluados": 9}, estado)                 # nueva evidencia
-    assert not core._reporte_vigente({**guardado, "reporte_json": {"n_docentes_activos": 41, "n_no_aprobaron_c1": 0, "estado_cobertura": "COB_BAJO_UMBRAL", "version_calculo": core.VERSION_CALCULO}}, estado)  # N cambió (CP21)
+    assert not core._reporte_vigente({**guardado, "reporte_json": {"n_docentes_activos": 41, "n_no_aprobaron_c2": 0, "estado_cobertura": "COB_BAJO_UMBRAL", "version_calculo": core.VERSION_CALCULO}}, estado)  # N cambió (CP21)
     assert not core._reporte_vigente({**guardado, "estado": "sin_datos"}, estado)
-    con_no_aprobados = _estado(_comparaciones_sinteticas(10), n_docentes=40, no_aprobaron_c1=5)
+    con_no_aprobados = _estado(_comparaciones_sinteticas(10), n_docentes=40, no_aprobaron_c2=5)
     assert not core._reporte_vigente(guardado, con_no_aprobados)                                      # cambió el conteo de no aprobados
-    assert core._reporte_vigente({**guardado, "reporte_json": {"n_docentes_activos": 40, "n_no_aprobaron_c1": 5, "estado_cobertura": "COB_BAJO_UMBRAL", "version_calculo": core.VERSION_CALCULO}}, con_no_aprobados)
+    assert core._reporte_vigente({**guardado, "reporte_json": {"n_docentes_activos": 40, "n_no_aprobaron_c2": 5, "estado_cobertura": "COB_BAJO_UMBRAL", "version_calculo": core.VERSION_CALCULO}}, con_no_aprobados)
 
 
 def test_reporte_guardado_con_otra_version_de_calculo_se_regenera():
-    estado = _estado(_comparaciones_sinteticas(10), n_docentes=40, no_aprobaron_c1=0)
-    json_ok = {"n_docentes_activos": 40, "n_no_aprobaron_c1": 0, "estado_cobertura": "COB_BAJO_UMBRAL",
+    estado = _estado(_comparaciones_sinteticas(10), n_docentes=40, no_aprobaron_c2=0)
+    json_ok = {"n_docentes_activos": 40, "n_no_aprobaron_c2": 0, "estado_cobertura": "COB_BAJO_UMBRAL",
                "version_calculo": core.VERSION_CALCULO}
     guardado = {"estado": "generado", "n_docentes_evaluados": 10, "reporte_json": json_ok}
     assert core._reporte_vigente(guardado, estado)
@@ -477,8 +480,8 @@ def test_consulta_confidencial_muestra_solo_estado_de_cobertura(monkeypatch, llm
 
 
 def test_consulta_sin_reporte_pide_solicitud_con_el_estado_de_cobertura(monkeypatch):
-    _stub_consulta(monkeypatch, _estado(_comparaciones_sinteticas(10), n_docentes=40, no_aprobaron_c1=6, sin_ref=2))
+    _stub_consulta(monkeypatch, _estado(_comparaciones_sinteticas(10), n_docentes=40, no_aprobaron_c2=6, sin_ref=2))
     r = _correr(core.consultar_reporte_existente(1))
     assert r["accion"] == "generar" and r["reporte"] is None            # no se genera sin solicitud
     assert (r["estado_cobertura"], r["banda_aplicada"], r["umbral_requerido"]) == ("COB_BAJO_UMBRAL", "B3", 28)
-    assert r["n_docentes_activos"] == 40 and r["n_no_aprobaron_c1"] == 6 and r["pct_cobertura"] == 25.0
+    assert r["n_docentes_activos"] == 40 and r["n_no_aprobaron_c2"] == 6 and r["pct_cobertura"] == 25.0
